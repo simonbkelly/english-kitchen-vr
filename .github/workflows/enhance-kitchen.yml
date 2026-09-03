@@ -12,45 +12,56 @@ jobs:
       contents: write
     steps:
       - uses: actions/checkout@v4
-      - name: Add classroom task mode
+      - name: Add natural landscape phone motion
         run: |
           python3 - <<'PY'
           from pathlib import Path
           p=Path('index.html')
           s=p.read_text()
-          if 'id="taskPanel"' in s:
-              raise SystemExit(0)
-          html='''<div id="taskPanel" style="position:fixed;top:86px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(20,28,35,.94);padding:13px 18px;border-radius:16px;max-width:86vw;text-align:center;box-shadow:0 8px 28px #0007;display:none"><div style="font-size:12px;opacity:.75;text-transform:uppercase;letter-spacing:.08em">English Challenge</div><div id="taskText" style="font-size:18px;font-weight:bold;margin:4px 0 8px"></div><button id="nextTask" style="border:0;border-radius:10px;padding:8px 13px;font-weight:bold;display:none">Next task ▶</button></div>'''
-          s=s.replace('<div class="hint">',html+'<div class="hint">',1)
-          marker='const clock=new THREE.Clock();'
-          code=r'''const taskPanel=document.getElementById('taskPanel');
-const taskText=document.getElementById('taskText');
-const nextTask=document.getElementById('nextTask');
-const tasks=[
- {text:'Open the refrigerator',check:()=>fridgeOpen,target:'refrigerator'},
- {text:'Close the refrigerator',check:()=>!fridgeOpen,target:'refrigerator'},
- {text:'Turn on the oven',check:()=>ovenOn,target:'oven'},
- {text:'Turn off the oven',check:()=>!ovenOn,target:'oven'},
- {text:'Turn on the microwave',check:()=>microOn,target:'microwave'},
- {text:'Turn off the microwave',check:()=>!microOn,target:'microwave'},
- {text:'Make coffee',check:()=>coffeeOn,target:'coffee machine'},
- {text:'Open the dishwasher',check:()=>dishOpen,target:'dishwasher'},
- {text:'Close the dishwasher',check:()=>!dishOpen,target:'dishwasher'}
-];
-let taskIndex=0,taskActive=false,taskCompleted=false;
-function currentTask(){return tasks[taskIndex%tasks.length]}
-function startTask(){taskActive=true;taskCompleted=false;taskPanel.style.display='block';nextTask.style.display='none';taskText.textContent=currentTask().text;speak(currentTask().text)}
-function finishTask(){if(!taskActive||taskCompleted||!currentTask().check())return;taskCompleted=true;score+=2;document.getElementById('score').textContent='⭐ '+score;taskText.textContent='✅ Great job! '+currentTask().text;nextTask.style.display='inline-block';speak('Great job!')}
-function advanceTask(){taskIndex++;startTask()}
-nextTask.addEventListener('click',advanceTask);
-const oldInteract=interact;
-interact=function(n){oldInteract(n);setTimeout(finishTask,80)};
-const oldTap=renderer.domElement.onclick;
-setTimeout(startTask,500);
-'''
-          if marker not in s:
-              raise SystemExit('marker not found')
-          s=s.replace(marker,code+marker,1)
+
+          # Add a motion-control button if it is not already present.
+          marker='<button id="vr" class="topbtn">🥽 VR</button>'
+          if 'id="motion"' not in s and marker in s:
+              s=s.replace(marker, marker+'<button id="motion" class="topbtn">📳 Motion</button>',1)
+
+          # Add the phone-motion handler immediately before the VR handler.
+          anchor='let vr=false;document.getElementById(\'vr\').onclick=async()=>{'
+          motion=r'''let motionEnabled=false,motionGamma=0,motionBeta=0;
+          function updateMotion(e){
+            if(e.gamma==null||e.beta==null)return;
+            const a=((screen.orientation&&screen.orientation.angle)||window.orientation||0)+360;
+            let sx,sy;
+            if(a%360===90){sx=-e.beta;sy=e.gamma}
+            else if(a%360===270){sx=e.beta;sy=-e.gamma}
+            else{sx=e.gamma;sy=e.beta}
+            const dead=7;
+            motionGamma=Math.abs(sx)>dead?Math.max(-1,Math.min(1,sx/25)):0;
+            motionBeta=Math.abs(sy)>dead?Math.max(-1,Math.min(1,sy/25)):0;
+          }
+          async function enableMotion(){
+            try{
+              if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+                const p=await DeviceOrientationEvent.requestPermission();
+                if(p!=='granted')throw new Error('permission denied');
+              }
+              window.addEventListener('deviceorientation',updateMotion,true);
+              motionEnabled=true;
+              document.getElementById('motion').textContent='📳 Motion ON';
+              say('Phone motion on');
+            }catch(e){say('Phone motion permission was not granted')}
+          }
+          if(document.getElementById('motion'))document.getElementById('motion').onclick=enableMotion;
+          '''
+          if 'function updateMotion(e)' not in s and anchor in s:
+              s=s.replace(anchor,motion+anchor,1)
+
+          # Mix phone motion into the existing arrow movement. In landscape:
+          # right = forward, left = back, up = left, down = right.
+          old='const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;'
+          new='const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}'
+          if old in s:
+              s=s.replace(old,new,1)
+
           p.write_text(s)
           PY
       - name: Commit enhancement
@@ -58,4 +69,4 @@ setTimeout(startTask,500);
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Add English classroom challenge mode' && git push
+          git diff --cached --quiet || git commit -m 'Add natural landscape phone motion controls' && git push
