@@ -48,7 +48,24 @@ const micro=box(.35,1.55,-3.68,1.15,.72,.72,dark);scene.add(micro);micro.userDat
 scene.add(box(2.25,.2,-3.55,1.55,1.55,.82,white));const dishDoor=box(2.25,.85,-3.12,1.38,.65,.06,steel);scene.add(dishDoor);dishDoor.userData.action='dishwasher';let dishOpen=false;
 const coffee=box(3.75,.2,-3.65,.85,1.35,.7,dark);scene.add(coffee);coffee.userData.action='coffee';scene.add(cyl(3.75,1.35,-3.65,.22,.12,steel));let coffeeOn=false;
 scene.add(box(0,.92,.7,3.3,.16,1.65,wood));for(const x of [-1.45,1.45])for(const z of [.05,1.35])scene.add(cyl(x,.05,z,.09,.9,dark));
-function fruit(x,z,c,r=.115){scene.add(cyl(x,1.08,z,r,.16,mat(c,.8)));}fruit(-.55,.7,red);fruit(0,.7,yellow);fruit(.55,.7,green);fruit(-.25,1,red);fruit(.3,1,yellow);
+function foodSphere(x,z,color,sx=1,sy=1,sz=1){
+  const m=new THREE.Mesh(new THREE.SphereGeometry(.14,24,16),mat(color,.8));
+  m.position.set(x,1.08,z);m.scale.set(sx,sy,sz);m.castShadow=true;scene.add(m);return m;
+}
+function foodStem(x,z,h=.08){scene.add(cyl(x,1.20,z,.025,h,dark));}
+// Orange: round orange fruit
+foodSphere(-.55,.7,0xf28c28,1,1,1);
+// Apple: red, slightly squat, with a stem
+foodSphere(0,.7,0xd9362e,1.05,.9,1.05);foodStem(0,.7,.09);
+// Banana: curved yellow shape
+const banana=new THREE.Mesh(new THREE.TorusGeometry(.17,.045,12,24,Math.PI*1.25),mat(0xf4d35e,.75));
+banana.rotation.set(0,0,-.45);banana.position.set(.55,1.10,.7);banana.castShadow=true;scene.add(banana);
+// Pear: green with a narrower top
+foodSphere(-.25,1,0x9fbe45,.95,1.15,.95);foodStem(-.25,1,.07);
+// Tomato: round red vegetable with a green top
+foodSphere(.3,1,0xe64a35,1.05,.95,1.05);
+const tomatoTop=new THREE.Mesh(new THREE.ConeGeometry(.07,.05,6),mat(0x4c8b55,.8));
+tomatoTop.position.set(.3,1.24,1);tomatoTop.rotation.x=Math.PI;scene.add(tomatoTop);
 scene.add(cyl(-3.8,.45,-3.7,.18,.25,steel));scene.add(cyl(-3.25,.45,-3.7,.18,.25,steel));scene.add(box(-2.6,.35,-3.7,.45,.18,.35,cream));for(let i=0;i<5;i++)scene.add(cyl(2.8+i*.28,.45,-3.75,.08,.25,steel));
 let score=0;
 function say(t){if('speechSynthesis'in window){speechSynthesis.cancel();speechSynthesis.speak(new SpeechSynthesisUtterance(t))}}
@@ -97,6 +114,6 @@ async function enableMotion(){
 }
 if(document.getElementById('motion'))document.getElementById('motion').onclick=enableMotion;
 let vr=false;document.getElementById('vr').onclick=async()=>{vr=!vr;document.body.classList.toggle('vr',vr);if(vr&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen();if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape')}catch(e){}}document.getElementById('vr').textContent=vr?'🥽 Exit VR':'🥽 VR'};
-function loop(){requestAnimationFrame(loop);const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}camera.position.x+=dx;camera.position.z+=dz;camera.position.x=Math.max(-5.2,Math.min(5.2,camera.position.x));camera.position.z=Math.max(-4.4,Math.min(4.4,camera.position.z));camera.rotation.set(pitch,yaw,0,'YXZ');renderer.render(scene,camera)}loop();
+function loop(){requestAnimationFrame(loop);const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}camera.position.x+=dx;camera.position.z+=dz;camera.position.x=Math.max(-5.2,Math.min(5.2,camera.position.x));camera.position.z=Math.max(-4.4,Math.min(4.4,camera.position.z));camera.rotation.set(pitch,yaw,0,'YXZ');renderer.render(scene,camera)}loop();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
