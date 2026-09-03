@@ -1,0 +1,61 @@
+name: Enhance English Kitchen
+on:
+  push:
+    paths-ignore:
+      - 'index.html'
+  workflow_dispatch:
+
+jobs:
+  enhance:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+      - name: Add classroom task mode
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          if 'id="taskPanel"' in s:
+              raise SystemExit(0)
+          html='''<div id="taskPanel" style="position:fixed;top:86px;left:50%;transform:translateX(-50%);z-index:3;background:rgba(20,28,35,.94);padding:13px 18px;border-radius:16px;max-width:86vw;text-align:center;box-shadow:0 8px 28px #0007;display:none"><div style="font-size:12px;opacity:.75;text-transform:uppercase;letter-spacing:.08em">English Challenge</div><div id="taskText" style="font-size:18px;font-weight:bold;margin:4px 0 8px"></div><button id="nextTask" style="border:0;border-radius:10px;padding:8px 13px;font-weight:bold;display:none">Next task ▶</button></div>'''
+          s=s.replace('<div class="hint">',html+'<div class="hint">',1)
+          marker='const clock=new THREE.Clock();'
+          code=r'''const taskPanel=document.getElementById('taskPanel');
+const taskText=document.getElementById('taskText');
+const nextTask=document.getElementById('nextTask');
+const tasks=[
+ {text:'Open the refrigerator',check:()=>fridgeOpen,target:'refrigerator'},
+ {text:'Close the refrigerator',check:()=>!fridgeOpen,target:'refrigerator'},
+ {text:'Turn on the oven',check:()=>ovenOn,target:'oven'},
+ {text:'Turn off the oven',check:()=>!ovenOn,target:'oven'},
+ {text:'Turn on the microwave',check:()=>microOn,target:'microwave'},
+ {text:'Turn off the microwave',check:()=>!microOn,target:'microwave'},
+ {text:'Make coffee',check:()=>coffeeOn,target:'coffee machine'},
+ {text:'Open the dishwasher',check:()=>dishOpen,target:'dishwasher'},
+ {text:'Close the dishwasher',check:()=>!dishOpen,target:'dishwasher'}
+];
+let taskIndex=0,taskActive=false,taskCompleted=false;
+function currentTask(){return tasks[taskIndex%tasks.length]}
+function startTask(){taskActive=true;taskCompleted=false;taskPanel.style.display='block';nextTask.style.display='none';taskText.textContent=currentTask().text;speak(currentTask().text)}
+function finishTask(){if(!taskActive||taskCompleted||!currentTask().check())return;taskCompleted=true;score+=2;document.getElementById('score').textContent='⭐ '+score;taskText.textContent='✅ Great job! '+currentTask().text;nextTask.style.display='inline-block';speak('Great job!')}
+function advanceTask(){taskIndex++;startTask()}
+nextTask.addEventListener('click',advanceTask);
+const oldInteract=interact;
+interact=function(n){oldInteract(n);setTimeout(finishTask,80)};
+const oldTap=renderer.domElement.onclick;
+setTimeout(startTask,500);
+'''
+          if marker not in s:
+              raise SystemExit('marker not found')
+          s=s.replace(marker,code+marker,1)
+          p.write_text(s)
+          PY
+      - name: Commit enhancement
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet || git commit -m 'Add English classroom challenge mode' && git push
