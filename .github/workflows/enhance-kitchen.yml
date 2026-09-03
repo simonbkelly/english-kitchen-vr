@@ -71,9 +71,38 @@ jobs:
           s=s.replace('.move{width:56px;height:50px}', '.move{width:39px;height:35px}')
           p.write_text(s)
           PY
+      - name: Make table food visually distinct
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          old='function fruit(x,z,c,r=.115){scene.add(cyl(x,1.08,z,r,.16,mat(c,.8)));}fruit(-.55,.7,red);fruit(0,.7,yellow);fruit(.55,.7,green);fruit(-.25,1,red);fruit(.3,1,yellow);'
+          new=r'''function foodSphere(x,z,color,sx=1,sy=1,sz=1){
+            const m=new THREE.Mesh(new THREE.SphereGeometry(.14,24,16),mat(color,.8));
+            m.position.set(x,1.08,z);m.scale.set(sx,sy,sz);m.castShadow=true;scene.add(m);return m;
+          }
+          function foodStem(x,z,h=.08){scene.add(cyl(x,1.20,z,.025,h,dark));}
+          // Orange: round orange fruit
+          foodSphere(-.55,.7,0xf28c28,1,1,1);
+          // Apple: red, slightly squat, with a stem
+          foodSphere(0,.7,0xd9362e,1.05,.9,1.05);foodStem(0,.7,.09);
+          // Banana: curved yellow shape
+          const banana=new THREE.Mesh(new THREE.TorusGeometry(.17,.045,12,24,Math.PI*1.25),mat(0xf4d35e,.75));
+          banana.rotation.set(0,0,-.45);banana.position.set(.55,1.10,.7);banana.castShadow=true;scene.add(banana);
+          // Pear: green with a narrower top
+          foodSphere(-.25,1,0x9fbe45,.95,1.15,.95);foodStem(-.25,1,.07);
+          // Tomato: round red vegetable with a green top
+          foodSphere(.3,1,0xe64a35,1.05,.95,1.05);
+          const tomatoTop=new THREE.Mesh(new THREE.ConeGeometry(.07,.05,6),mat(0x4c8b55,.8));
+          tomatoTop.position.set(.3,1.24,1);tomatoTop.rotation.x=Math.PI;scene.add(tomatoTop);'''
+          if old in s:
+              s=s.replace(old,new,1)
+          p.write_text(s)
+          PY
       - name: Commit enhancement
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Make arrow controller 30 percent smaller' && git push
+          git diff --cached --quiet || git commit -m 'Make table food shapes and colours distinct' && git push
