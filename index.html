@@ -25,7 +25,7 @@ canvas{display:block;touch-action:none}
 </head>
 <body>
 <div id="rotateNotice"><div><span class="phoneIcon">📱↔️</span>Please turn your phone sideways.<br>This kitchen works in landscape mode.</div></div>
-<div id="top"><button id="challenge" class="topbtn">🎯 Challenge</button><button id="teacher" class="topbtn green">👩‍🏫 Teacher</button><button id="vr" class="topbtn">🥽 VR</button><span id="score" class="pill score">⭐ 0</span></div>
+<div id="top"><button id="challenge" class="topbtn">🎯 Challenge</button><button id="teacher" class="topbtn green">👩‍🏫 Teacher</button><button id="vr" class="topbtn">🥽 VR</button><button id="motion" class="topbtn">📳 Motion</button><span id="score" class="pill score">⭐ 0</span></div>
 <div id="challengePanel" class="hidden"><div class="small">English Challenge</div><div id="taskText" class="task">Open the refrigerator</div><button id="next" class="next hidden">Next task ▶</button></div>
 <div id="teacherPanel" class="hidden"><b>Teacher Mode</b><div style="font-size:12px;opacity:.75;margin:4px 0 8px">Choose challenge difficulty</div><button class="level" data-level="Easy">Easy</button><button class="level" data-level="Medium">Medium</button><button class="level" data-level="Hard">Hard</button></div>
 <div id="controls"><span class="blank"></span><button class="move" data-move="forward">▲</button><span class="blank"></span><button class="move" data-move="left">◀</button><button class="move" data-move="back">▼</button><button class="move" data-move="right">▶</button></div>
@@ -71,7 +71,32 @@ renderer.domElement.addEventListener('pointerdown',e=>{if(e.pointerType==='mouse
 window.addEventListener('pointermove',e=>{if(!dragging||e.target!==renderer.domElement)return;const dx=e.clientX-lastX,dy=e.clientY-lastY;yaw-=dx*.004;pitch-=dy*.003;pitch=Math.max(-.8,Math.min(.8,pitch));lastX=e.clientX;lastY=e.clientY});
 window.addEventListener('pointerup',e=>{if(!dragging)return;dragging=false;const moved=Math.hypot(e.clientX-startX,e.clientY-startY);if(e.target===renderer.domElement&&moved<8&&performance.now()-startTime<450)raycastTap(e.clientX,e.clientY)});
 const move={forward:false,back:false,left:false,right:false};document.querySelectorAll('[data-move]').forEach(b=>{const k=b.dataset.move;const on=e=>{e.preventDefault();e.stopPropagation();move[k]=true};const off=e=>{e.preventDefault();e.stopPropagation();move[k]=false};b.addEventListener('pointerdown',on);b.addEventListener('pointerup',off);b.addEventListener('pointercancel',off);b.addEventListener('pointerleave',off)});
+let motionEnabled=false,motionGamma=0,motionBeta=0;
+function updateMotion(e){
+  if(e.gamma==null||e.beta==null)return;
+  const a=((screen.orientation&&screen.orientation.angle)||window.orientation||0)+360;
+  let sx,sy;
+  if(a%360===90){sx=-e.beta;sy=e.gamma}
+  else if(a%360===270){sx=e.beta;sy=-e.gamma}
+  else{sx=e.gamma;sy=e.beta}
+  const dead=7;
+  motionGamma=Math.abs(sx)>dead?Math.max(-1,Math.min(1,sx/25)):0;
+  motionBeta=Math.abs(sy)>dead?Math.max(-1,Math.min(1,sy/25)):0;
+}
+async function enableMotion(){
+  try{
+    if(typeof DeviceOrientationEvent!=='undefined'&&typeof DeviceOrientationEvent.requestPermission==='function'){
+      const p=await DeviceOrientationEvent.requestPermission();
+      if(p!=='granted')throw new Error('permission denied');
+    }
+    window.addEventListener('deviceorientation',updateMotion,true);
+    motionEnabled=true;
+    document.getElementById('motion').textContent='📳 Motion ON';
+    say('Phone motion on');
+  }catch(e){say('Phone motion permission was not granted')}
+}
+if(document.getElementById('motion'))document.getElementById('motion').onclick=enableMotion;
 let vr=false;document.getElementById('vr').onclick=async()=>{vr=!vr;document.body.classList.toggle('vr',vr);if(vr&&document.documentElement.requestFullscreen){try{await document.documentElement.requestFullscreen();if(screen.orientation&&screen.orientation.lock)await screen.orientation.lock('landscape')}catch(e){}}document.getElementById('vr').textContent=vr?'🥽 Exit VR':'🥽 VR'};
-function loop(){requestAnimationFrame(loop);const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;camera.position.x+=dx;camera.position.z+=dz;camera.position.x=Math.max(-5.2,Math.min(5.2,camera.position.x));camera.position.z=Math.max(-4.4,Math.min(4.4,camera.position.z));camera.rotation.set(pitch,yaw,0,'YXZ');renderer.render(scene,camera)}loop();
+function loop(){requestAnimationFrame(loop);const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}camera.position.x+=dx;camera.position.z+=dz;camera.position.x=Math.max(-5.2,Math.min(5.2,camera.position.x));camera.position.z=Math.max(-4.4,Math.min(4.4,camera.position.z));camera.rotation.set(pitch,yaw,0,'YXZ');renderer.render(scene,camera)}loop();
 addEventListener('resize',()=>{camera.aspect=innerWidth/innerHeight;camera.updateProjectionMatrix();renderer.setSize(innerWidth,innerHeight)});
 </script></body></html>
