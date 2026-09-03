@@ -1,0 +1,1 @@
+Natural landscape phone motion mapping: right=forward, left=back, up=left, down=right.
