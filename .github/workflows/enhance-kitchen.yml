@@ -19,12 +19,10 @@ jobs:
           p=Path('index.html')
           s=p.read_text()
 
-          # Add a motion-control button if it is not already present.
           marker='<button id="vr" class="topbtn">🥽 VR</button>'
           if 'id="motion"' not in s and marker in s:
               s=s.replace(marker, marker+'<button id="motion" class="topbtn">📳 Motion</button>',1)
 
-          # Add the phone-motion handler immediately before the VR handler.
           anchor='let vr=false;document.getElementById(\'vr\').onclick=async()=>{'
           motion=r'''let motionEnabled=false,motionGamma=0,motionBeta=0;
           function updateMotion(e){
@@ -55,8 +53,6 @@ jobs:
           if 'function updateMotion(e)' not in s and anchor in s:
               s=s.replace(anchor,motion+anchor,1)
 
-          # Mix phone motion into the existing arrow movement. In landscape:
-          # right = forward, left = back, up = left, down = right.
           old='const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;'
           new='const speed=.045;let dx=0,dz=0;if(move.forward)dz-=speed;if(move.back)dz+=speed;if(move.left)dx-=speed;if(move.right)dx+=speed;if(motionEnabled){dz-=speed*motionGamma;dx+=speed*motionBeta;}'
           if old in s:
@@ -64,9 +60,20 @@ jobs:
 
           p.write_text(s)
           PY
+      - name: Make arrow controller 30 percent smaller
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('grid-template-columns:58px 58px 58px;grid-template-rows:52px 52px 52px;gap:7px', 'grid-template-columns:41px 41px 41px;grid-template-rows:36px 36px 36px;gap:5px')
+          s=s.replace('.move{border:0;border-radius:15px;background:#ffffffe8;color:#18212b;font-size:25px;', '.move{border:0;border-radius:11px;background:#ffffffe8;color:#18212b;font-size:18px;')
+          s=s.replace('.move{width:56px;height:50px}', '.move{width:39px;height:35px}')
+          p.write_text(s)
+          PY
       - name: Commit enhancement
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add index.html
-          git diff --cached --quiet || git commit -m 'Add natural landscape phone motion controls' && git push
+          git diff --cached --quiet || git commit -m 'Make arrow controller 30 percent smaller' && git push
