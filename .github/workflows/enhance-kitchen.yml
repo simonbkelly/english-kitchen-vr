@@ -100,6 +100,18 @@ jobs:
               s=s.replace(old,new,1)
           p.write_text(s)
           PY
+      - name: Increase movement buttons by 20 percent
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('index.html')
+          s=p.read_text()
+          s=s.replace('grid-template-columns:21px 21px 21px;grid-template-rows:18px 18px 18px;gap:3px', 'grid-template-columns:25px 25px 25px;grid-template-rows:22px 22px 22px;gap:3px')
+          s=s.replace('.move{width:21px;height:18px;', '.move{width:25px;height:22px;')
+          s=s.replace('font-size:10px;font-weight:900;box-shadow:0 3px 9px #0004;touch-action:none;padding:0}', 'font-size:12px;font-weight:900;box-shadow:0 3px 9px #0004;touch-action:none;padding:0}')
+          s=s.replace('.move{width:21px;height:18px;font-size:10px}', '.move{width:25px;height:22px;font-size:12px}')
+          p.write_text(s)
+          PY
       - name: Commit enhancement
         run: |
           git config user.name 'github-actions[bot]'
