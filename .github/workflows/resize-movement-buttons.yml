@@ -1,0 +1,35 @@
+name: Resize movement buttons
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  resize:
+    runs-on: ubuntu-latest
+    if: github.actor != 'github-actions[bot]'
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+      - name: Increase movement button size by 20 percent
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text()
+          s = s.replace('grid-template-columns:21px 21px 21px;grid-template-rows:18px 18px 18px;gap:3px', 'grid-template-columns:25px 25px 25px;grid-template-rows:22px 22px 22px;gap:3px')
+          s = s.replace('.move{width:21px;height:18px;', '.move{width:25px;height:22px;')
+          s = s.replace('font-size:10px;font-weight:900;box-shadow:0 3px 9px #0004;touch-action:none;padding:0}', 'font-size:12px;font-weight:900;box-shadow:0 3px 9px #0004;touch-action:none;padding:0}')
+          p.write_text(s)
+          PY
+      - name: Commit and push change
+        run: |
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git diff --cached --quiet && exit 0
+          git commit -m 'Make movement buttons 20% bigger'
+          git push
