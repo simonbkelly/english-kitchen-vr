@@ -1,0 +1,1 @@
+Final trigger for movement button resize.
